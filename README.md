@@ -19,6 +19,8 @@ example:
         meta, posts = ptt.get_post_list("https://www.ptt.cc/bbs/Gossiping/index.html")
     
 meta:{"prev":"上頁的連結","next":"下頁的連結"}  
+![XXX](http://phate334.github.io/webPTTparser/board-meta.PNG "meta")
+
 posts:[{""},...]每個元素代表一篇文章，包含如下內容
 
     {  

@@ -13,15 +13,20 @@ url: 目標網址。
 ttl: 回應失敗時重覆嘗試的次數，預設4次。  
 return: BeautifulSoup無法解析回應時回傳None。  
 
-### get_post_list(url)
+### parse_board(url)
 example:
 
         meta, posts = ptt.get_post_list("https://www.ptt.cc/bbs/Gossiping/index.html")
     
-meta:{"prev":"上頁的連結","next":"下頁的連結"}  
+meta:
+
+    {
+        "prev":"上頁的連結",
+        "next":"下頁的連結"
+    }
 ![XXX](http://phate334.github.io/webPTTparser/board-meta.PNG "meta")
 
-posts:[{""},...]每個元素代表一篇文章，包含如下內容
+posts:[dict(),...]每個元素代表一篇文章，包含如下內容
 
     {  
         "nrec":"推文數",  
@@ -32,5 +37,26 @@ posts:[{""},...]每個元素代表一篇文章，包含如下內容
         "author":"作者"  
     }
 
-### get_article(url)
-未完成
+### parse_article(url)
+原始資料中某些作者會已修改內文的方式來回應其他人，目前還沒有有效的方法表達這些資料，故內文的資料並沒放在回傳的meta中。
+example:
+
+        meta, push_info = ptt.parse_article("https://www.ptt.cc/bbs/Gossiping/M.1448856523.A.FB1.html")
+meta:
+
+    {
+        "author":"ID",
+        "name":"括號內的暱稱".
+        "board_name":"看板名稱",
+        "title":"文章標題",
+        "date":"發文時間",
+        "ip":[index0為發文時的ip，後面的都是編輯時的ip]
+    }
+push_info:[dict(),...]  每個元素都是一條回覆訊息
+
+    {
+        "tag":"→、推、噓",
+        "userid":"ID",
+        "content":"回覆內容",
+        "time":"回覆時間"
+    }

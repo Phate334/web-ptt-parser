@@ -73,7 +73,7 @@ class PTT():
             return None
         article_div = soup.find(id="main-container")
         ### Information about this article like content,author,IP...etc  ###
-        for node in article_div.find_all(class_=["article-metaline","article-metaline-right"])[:3]:
+        for node in article_div.find_all(class_=["article-metaline","article-metaline-right"])[:4]:
             tag, value = node.stripped_strings
             tag = "author" if tag==u"作者" else tag
             tag = "board_name" if tag==u"看板" else tag

@@ -16,7 +16,7 @@ return: BeautifulSoup無法解析回應時回傳None。
 ### parse_board(url)
 example:
 
-        meta, posts = ptt.get_post_list("https://www.ptt.cc/bbs/Gossiping/index.html")
+        meta, posts = ptt.parse_board("https://www.ptt.cc/bbs/Gossiping/index.html")
     
 meta:
 

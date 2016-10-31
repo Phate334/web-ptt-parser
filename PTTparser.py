@@ -1,104 +1,65 @@
 # -*- coding:utf-8 -*-
-"""this parser can capture board and article data from web ptt.
-"""
 import re
-import urllib
-import urllib2
-
 from bs4 import BeautifulSoup
+import requests
 
-class PTT():
-    """
-    API for parser web PTT, in BeautifulSoup4-based.
-    """
-    def __init__(self):
-        ###create over 18 opener###
-        cookies = urllib2.HTTPCookieProcessor()
-        data_encoded = urllib.urlencode({"yes":"yes"})
-        self.opener = urllib2.build_opener(cookies)
-        self.opener.open("https://www.ptt.cc/ask/over18", data_encoded)
-        ###default value###
-        self.ptt_host = "https://www.ptt.cc"
-        self.re_obj = re.compile(r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b")
+ptt_host = 'https://www.ptt.cc'
+ptt_get = lambda url:requests.get(url, cookies={'over18': '1'})
 
-    def get_soup(self, url, ttl=4):
-        """
-        when opener time out, default ttl is 4.
-        """
-        for i in range(ttl):
-            try:
-                html = self.opener.open(url)
-                break
-            except urllib2.URLError:
-                html = None
-        try:
-            return BeautifulSoup(html, "lxml")
-        except TypeError:
-            return None
-        
-    def parse_board(self, url):
-        """url: get article information from this board url.
-        return: dict, list
-                page_meta:{"prev":"previous page url","next":"next page url"}
-                result:[{"":""},...]
-        """
-        result = []
-        soup = self.get_soup(url)
-        if not soup:
-            return (None, None)
-        ### article list parser ###
-        list_div = soup.find_all(class_="r-ent")
-        for article in list_div:
-            temp = {}
-            temp["nrec"] = article.find(class_="nrec").get_text()  # 推文數
-            temp["mark"] = article.find(class_="mark").get_text()  # 標記
-            temp["title"] = article.find(class_="title").get_text()  # 標題
-            temp["url"] = self.ptt_host + article.find("a")["href"] if article.find("a") else None  # 文章網址
-            temp["date"] = article.find(class_="date").get_text()  # 日期
-            temp["author"] = article.find(class_="author").get_text()  # 作者
-            result.append(temp)
-        ### Previous & Next page url###
-        page_meta = {}
-        page_meta["prev"] = soup.find(text=u"‹ 上頁").parent.get("href")
-        page_meta["prev"] = self.ptt_host + page_meta["prev"] if page_meta["prev"] else None
-        page_meta["next"] = soup.find(text=u"下頁 ›").parent.get("href")
-        page_meta["next"] = self.ptt_host + page_meta["next"] if page_meta["next"] else None
-        return (page_meta, result)
+def get_soup(src):
+    # TODO: check src's location is on web or file 
+    res = ptt_get(src)
+    # TODO: TTL
+    return BeautifulSoup(res.text, 'html.parser')
 
-    def parse_article(self, url):
-        meta = {}
-        push_info = []
-        soup = self.get_soup(url)
-        if not soup:
-            return None
-        article_div = soup.find(id="main-container")
-        ### Information about this article like content,author,IP...etc  ###
-        for node in article_div.find_all(class_=["article-metaline","article-metaline-right"])[:4]:
-            tag, value = node.stripped_strings
-            tag = "author" if tag==u"作者" else tag
-            tag = "board_name" if tag==u"看板" else tag
-            tag = "title" if tag==u"標題" else tag
-            tag = "date" if tag==u"時間" else tag
-            meta[tag] = value
-        user_id, name = meta["author"].split(" ")
-        meta["author"] = user_id
-        meta["name"] = name
-        # find editor IP address
-        meta["ip"] = []
-        for sys_log in article_div.find_all(class_="f2"):
-            ip = self.re_obj.findall(sys_log.get_text())
-            meta["ip"] += ip
-        ### push information include tag,userid,content,time ###
-        for node in article_div.find_all(class_="push"):
-            temp = {}
-            temp["tag"] = node.find(class_="push-tag").get_text().strip()
-            temp["userid"] = node.find(class_="push-userid").get_text()
-            temp["content"] = node.find(class_="push-content").get_text()
-            temp["time"] = node.find(class_="push-ipdatetime").get_text()
-            push_info.append(temp)
-        return (meta, push_info)
+def parse_board(url):
+    page = get_soup(url)
+    page_content = page.find(class_='r-list-container')
+    article_list = []
+    for article_dom in page_content.find_all(class_=['r-ent', 'r-list-sep']):
+        if 'r-list-sep' in article_dom['class']:  # split line
+            continue
+        if not article_dom.find('a'):  # removed article
+            continue
+        article = {}
+        article['nrec'] = article_dom.find(class_='nrec').text
+        article['mark'] = article_dom.find(class_='mark').text
+        article['title'] = article_dom.find(class_='title').text.strip()
+        article['link'] = ptt_host + article_dom.find('a').get('href')
+        article['date'] = article_dom.find(class_='date').text
+        article['author'] = article_dom.find(class_='author').text
+        article_list.append(article)
+    meta = {}
+    page_links = page.find(class_='btn-group-paging').find_all('a')
+    meta['prev'] = (ptt_host + page_links[1]['href']) if page_links[1].get('href') else None
+    meta['next'] = (ptt_host + page_links[2]['href']) if page_links[2].get('href') else None
 
-if __name__ == "__main__":
-    ptt = PTT()
-    # meta, articles = ptt.parse_board("https://www.ptt.cc/bbs/Gossiping/index.html")
-    # meta, push_info = ptt.parse_article("https://www.ptt.cc/bbs/Gossiping/M.1448856523.A.FB1.html")
+    return (meta, article_list)
+
+def parse_article(src):
+    soup = get_soup(src)
+    article_content = soup.find(id='main-container')
+
+    meta_map = {
+        u"作者":"author_name",
+        u"看板":"board_name",
+        u"標題":"title",
+        u"時間":"datetime"
+    }
+    meta = {}
+    for node in article_content.find_all(class_=['article-metaline','article-metaline-right']):
+        tag, value = node.stripped_strings
+        meta[meta_map[tag]] = value
+    user_id, name = meta["author_name"].split(" (")
+    meta["author_id"] = user_id
+    meta["author_name"] = name[:-1]
+    push_info = []
+    for push in article_content.find_all(class_="push"):
+        temp = {}
+        temp["tag"] = push.find(class_="push-tag").text.strip()
+        temp["userid"] = push.find(class_="push-userid").text
+        temp["content"] = push.find(class_="push-content").text
+        temp["time"] = push.find(class_="push-ipdatetime").text
+        push_info.append(temp)
+    return (meta, push_info)
+    

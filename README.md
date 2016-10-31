@@ -3,7 +3,8 @@
 
 ## Update
 - 2016.11.1
-
+1. 目前正在重構中，這版改用 requests 取得頁面內容。程式碼裡還有一些待辦還沒寫完。
+2. 爬取文章後的欄位修改。
 
 ## Getting started
     import PTTparser
@@ -25,6 +26,8 @@ meta:
 posts:[dict(),...]每個元素代表一篇文章，包含如下內容
 
     {  
+        "nrec":"推文數",  
+        "mark":"標記",
         "title":"文張標題",
         "url":"文張連結，不可用時為None",
         "date":"日期",

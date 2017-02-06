@@ -9,13 +9,13 @@
  2. 爬取文章後的欄位修改。
 
 ## Getting started
-    import PTTparser
+    from PTTparser import parse_board, parse_article
 
 ## API
 ### parse_board(url)
 example:
 
-        meta, articles = ptt.parse_board("https://www.ptt.cc/bbs/Gossiping/index.html")
+        meta, articles = parse_board("https://www.ptt.cc/bbs/Gossiping/index.html")
 
 meta:
 
@@ -40,7 +40,7 @@ posts:[dict(),...]每個元素代表一篇文章，包含如下內容
 原始資料中某些作者會已修改內文的方式來回應其他人，目前還沒有有效的方法表達這些資料，故內文的資料並沒放在回傳的 meta 中。
 example:
 
-        meta, push_info = ptt.parse_article("https://www.ptt.cc/bbs/Gossiping/M.1448856523.A.FB1.html")
+        meta, push_info = parse_article("https://www.ptt.cc/bbs/Gossiping/M.1448856523.A.FB1.html")
 meta:
 
     {
